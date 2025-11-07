@@ -1,309 +1,78 @@
 const syntax_error = "It seems that you have a syntax error in your input.";
 
-// Fonction pour text
-function text(line) {
-    const match = line.match(/^\s*text\s*:\s*(.+)$/i);
-    if (match) return `<p>${match[1].trim()}</p>`;
-    return syntax_error;
-}
+// ====== Fonctions de rendu HTML ======
+const renderers = {
+    text: line => `<p>${line}</p>`,
+    button: line => `<button>${line}</button>`,
+    link: (text, url) => `<a href="${url}">${text}</a>`,
+    image: line => `<img src="${line}">`,
+    buttonLink: (text, url) => `<button onclick="window.location.href='${url}'">${text}</button>`,
+    title: line => `<h1>${line}</h1>`,
+    subtitle: line => `<h2>${line}</h2>`,
+    bold: line => `<strong>${line}</strong>`,
+    italic: line => `<em>${line}</em>`,
+    underline: line => `<u>${line}</u>`,
+    quote: line => `<blockquote>${line}</blockquote>`,
+    list: line => `<ul>${line.split(',').map(i => `<li>${i.trim()}</li>`).join('')}</ul>`,
+    numberedList: line => `<ol>${line.split(',').map(i => `<li>${i.trim()}</li>`).join('')}</ol>`,
+    cross: line => `<s>${line}</s>`,
+    break: () => `<br>`,
+    paragraph: line => `<p>${line}</p>`,
+    area: line => `<section>${line}</section>`,
+    article: line => `<article>${line}</article>`,
+    box: line => `<div>${line}</div>`,
+    comment: line => `<!-- ${line} -->`
+};
 
-// Fonction pour button
-function button(line) {
-    const match = line.match(/^\s*button\s*:\s*(.+)$/i);
-    if (match) return `<button>${match[1].trim()}</button>`;
-    return syntax_error;
-}
+// ====== Fonction pour parser une ligne ======
+function parseLine(line) {
+    line = line.trim();
+    if (!line) return '';
 
-// Fonction pour link
-function link(line) {
-    const match = line.match(/^\s*link\s*:\s*(.+?)\s*,\s*to\s+(.+)$/i);
-    if (match) return `<a href="${match[2].trim()}">${match[1].trim()}</a>`;
-    return syntax_error;
-}
+    // Bouton avec lien en priorité
+    const buttonLinkMatch = line.match(/^\s*button\s*:\s*(.+?),\s*to\s+(.+)$/i);
+    if (buttonLinkMatch) return renderers.buttonLink(buttonLinkMatch[1].trim(), buttonLinkMatch[2].trim());
 
-//Fonction pour image
-function image(line) {
-    const match = line.match(/^\s*image\s*:\s*(.+)$/i);
-    if (match) return `<img src="${match[1].trim()}">`;
-    return syntax_error;
-}
-
-// Fonction pour button avec lien
-function buttonLink(line) {
-    const match = line.match(/^\s*button\s*:\s*(.+?),\s*to\s+(.+)$/i);
-    if (match) {
-        const text = match[1].trim();
-        const url = match[2].trim();
-        return `<button onclick="window.location.href='${url}'">${text}</button>`;
+    // Lignes avec "motclé: contenu"
+    const simpleMatch = line.match(/^\s*(\w[\w-]*)\s*:\s*(.+)$/i);
+    if (simpleMatch) {
+        const key = simpleMatch[1].trim().toLowerCase();
+        const value = simpleMatch[2].trim();
+        if (renderers[key]) return renderers[key](value);
     }
-    return `<span style="color:red;">${syntax_error}</span>`;
+
+    // Erreur si rien ne correspond
+    return `<span style="color:red;">${syntax_error}: ${line}</span>`;
 }
 
-//fonction pour le titre
-function title(line) {
-    const match = line.match(/^\s*title\s*:\s*(.+)$/i);
-    if (match) return `<h1>${match[1].trim()}</h1>`;
-    return syntax_error;
-}
-
-//fonction pour le sous-titre
-function subtitle(line) {
-    const match = line.match(/^\s*subtitle\s*:\s*(.+)$/i);
-    if (match) return `<h2>${match[1].trim()}</h2>`;
-    return syntax_error;
-}
-
-//fonction pour le texte en gras
-function boldText(line) {
-    const match = line.match(/^\s*bold\s*:\s*(.+)$/i);
-    if (match) return `<strong>${match[1].trim()}</strong>`;
-    return syntax_error;
-}
-
-//fonction pour le texte italique
-function italicText(line) {
-    const match = line.match(/^\s*italic\s*:\s*(.+)$/i);
-    if (match) return `<em>${match[1].trim()}</em>`;
-    return syntax_error;
-}
-
-//fonction pour le texte souligné
-function underlineText(line) {
-    const match = line.match(/^\s*underline\s*:\s*(.+)$/i);
-    if (match) return `<u>${match[1].trim()}</u>`;
-    return syntax_error;
-}
-
-//fonction pour les citations
-function quoteText(line) {
-    const match = line.match(/^\s*quote\s*:\s*(.+)$/i);
-    if (match) return `<blockquote>${match[1].trim()}</blockquote>`;
-    return syntax_error;
-}
-
-//fonction pour les listes
-function listText(line) {
-    const match = line.match(/^\s*list\s*:\s*(.+)$/i);
-    if (match) {
-        const items = match[1].split(',').map(item => `<li>${item.trim()}</li>`).join('');
-        return `<ul>${items}</ul>`;
-    }
-    return syntax_error;
-}
-
-//fonction pour le texte barré
-function strikethroughText(line) {
-    const match = line.match(/^\s*cross\s*:\s*(.+)$/i);
-    if (match) return `<s>${match[1].trim()}</s>`;
-    return syntax_error;
-}
-
-//fonction pour les retours à la ligne
-function lineBreak(line) {
-    const match = line.match(/^\s*break\s*:\s*$/i);
-    if (match) return `<br>`;
-    return syntax_error;
-}
-//foonction pour les paragraphes
-function paragraphText(line) {
-    const match = line.match(/^\s*paragraph\s*:\s*(.+)$/i);
-    if (match) return `<p>${match[1].trim()}</p>`;
-    return syntax_error;
-}
-
-//fonction pour les sections
-function sectionText(line) {
-    const match = line.match(/^\s*area\s*:\s*(.+)$/i);
-    if (match) return `<section>${match[1].trim()}</section>`;
-    return syntax_error;
-}
-
-//fonction pour les articles
-function articleText(line) {
-    const match = line.match(/^\s*article\s*:\s*(.+)$/i);
-    if (match) return `<article>${match[1].trim()}</article>`;
-    return syntax_error;
-}
-
-//fonction pour les divisions
-function divisionText(line) {
-    const match = line.match(/^\s*box\s*:\s*(.+)$/i);
-    if (match) return `<div>${match[1].trim()}</div>`;
-    return syntax_error;
-}
-
-//fonction pour les listes numérotées
-function numberedList(line) {
-    const match = line.match(/^\s*numbered-list\s*:\s*(.+)$/i);
-    if (match) {
-        const items = match[1].split(',').map(item => `<li>${item.trim()}</li>`).join('');
-        return `<ol>${items}</ol>`;
-    }
-    return syntax_error;
-}
-
-//fonction pour les commentaires
-function commentText(line) {
-    const match = line.match(/^\s*comment\s*:\s*(.+)$/i);
-    if (match) return `<!-- ${match[1].trim()} -->`;
-    return syntax_error;
-}
-
-//fo
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Fonction qui détecte le type et appelle la fonction correspondante
+// ====== Fonction principale ======
 function parseAndShow() {
     const input = document.getElementById('input').value;
     const lines = input.split('\n');
     let htmlOutput = '';
     let previewHTML = '';
 
-for (let line of lines) {
-    line = line.trim();
-    if (line === '') continue;
-
-    // Bouton avec lien d'abord
-    if (/^\s*button\s*:.*to\s+/.test(line)) {  
-        const result = buttonLink(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    } 
-    else if (/^\s*button\s*:/.test(line)) {
-        const result = button(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    } 
-    else if (/^\s*text\s*:/.test(line)) {
-        const result = text(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    } 
-    else if (/^\s*link\s*:/.test(line)) { 
-        const result = link(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    } 
-    else if (/^\s*image\s*:/.test(line)) {  
-        const result = image(line);
+    for (let line of lines) {
+        const result = parseLine(line);
         htmlOutput += result + '\n';
         previewHTML += result;
     }
-        else if (/^\s*title\s*:/.test(line)) {  
-        const result = title(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-        }
-    else if (/^\s*bold\s*:/.test(line)) {
-        const result = boldText(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    }
-
-    else if (/^\s*italic\s*:/.test(line)) {
-        const result = italicText(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    } 
-    else if (/^\s*underline\s*:/.test(line)) {
-        const result = underlineText(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    } 
-    else if (/^\s*quote\s*:/.test(line)) {
-        const result = quoteText(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    } 
-    else if (/^\s*list\s*:/.test(line)) {
-        const result = listText(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    } 
-    else if (/^\s*cross\s*:/.test(line)) {
-        const result = strikethroughText(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    } 
-    else if (/^\s*break\s*:/.test(line)) {
-        const result = lineBreak(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    } 
-    else if (/^\s*paragraph\s*:/.test(line)) {
-        const result = paragraphText(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    } 
-    else if (/^\s*area\s*:/.test(line)) {
-        const result = sectionText(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    } 
-    else if (/^\s*article\s*:/.test(line)) {
-        const result = articleText(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    } 
-    else if (/^\s*box\s*:/.test(line)) {
-        const result = divisionText(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    }
-
-    else if (/^\s*numbered-list\s*:/.test(line)) {
-        const result = numberedList(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    }
-    else if (/^\s*subtitle\s*:/.test(line)) {
-    const result = subtitle(line);
-    htmlOutput += result + '\n';
-    previewHTML += result;
-}
-
-    else if (/^\s*comment\s*:/.test(line)) {
-        const result = commentText(line);
-        htmlOutput += result + '\n';
-        previewHTML += result;
-    }
-    else {
-        htmlOutput += syntax_error + '\n';
-        previewHTML += `<span style="color:red;">${syntax_error}</span>`;
-    }
-
-}
-
-
 
     document.getElementById('output').textContent = htmlOutput;
     document.getElementById('preview').innerHTML = previewHTML;
 }
 
+// ====== Copier le résultat ======
 function copyOutput() {
-            const output = document.getElementById('output').textContent;
-            navigator.clipboard.writeText(output).then(() => {
-                alert("HTML copié dans le presse-papiers !");
-            }).catch(err => {
-                alert("Erreur lors de la copie : " + err);
-            });
-        }
+    const output = document.getElementById('output').textContent;
+    navigator.clipboard.writeText(output).then(() => {
+        alert("HTML copié dans le presse-papiers !");
+    }).catch(err => {
+        alert("Erreur lors de la copie : " + err);
+    });
+}
 
-
+// ====== Gestion de l'input ======
 let timeout;
 document.getElementById('input').addEventListener('input', () => {
     clearTimeout(timeout);
