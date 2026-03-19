@@ -1,49 +1,25 @@
 const syntax_error = "It seems that you have a syntax error in your input.";
 
-// ====== Mapping simplifié des styles ======
-const cssMap = {
-    color: 'color',
-    bg: 'background',
-    size: 'font-size',
-    align: 'text-align',
-    padding: 'padding',
-    margin: 'margin',
-    radius: 'border-radius',
-    width: 'width',
-    height: 'height'
-};
-
-// ====== Styles spéciaux sans valeur ======
-const specialStyles = {
-    center: 'text-align:center;',
-    bold: 'font-weight:bold;',
-    shadow: 'box-shadow:0 2px 10px rgba(0,0,0,0.2);'
-};
-
 // ====== Parser contenu + styles ======
+// Syntaxe : title: Mon texte /color: blue; font-size: 24px
 function parseStyle(line) {
-    const parts = line.split('/');
-    const content = parts[0].trim();
-    const styles = parts.slice(1);
+    const slashIndex = line.indexOf('/');
 
-    let styleString = '';
+    if (slashIndex === -1) {
+        return { content: line.trim(), styleString: '' };
+    }
 
-    styles.forEach(style => {
-        style = style.trim();
+    const content = line.slice(0, slashIndex).trim();
+    const rawStyle = line.slice(slashIndex + 1).trim();
 
-        // Cas : key=value
-        if (style.includes('=')) {
-            const [key, value] = style.split('=').map(s => s.trim());
-
-            if (cssMap[key]) {
-                styleString += `${cssMap[key]}:${value};`;
-            }
-        } 
-        // Cas : style spécial (ex: center, bold)
-        else if (specialStyles[style]) {
-            styleString += specialStyles[style];
-        }
-    });
+    // On accepte directement du CSS valide : "color: blue; font-size: 24px"
+    // On normalise juste : on s'assure que chaque déclaration finit par ";"
+    const styleString = rawStyle
+        .split(';')
+        .map(decl => decl.trim())
+        .filter(decl => decl.length > 0)
+        .map(decl => decl.endsWith(';') ? decl : decl + ';')
+        .join(' ');
 
     return { content, styleString };
 }
