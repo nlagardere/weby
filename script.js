@@ -1,54 +1,188 @@
 const syntax_error = "It seems that you have a syntax error in your input.";
 
+// ====== Mapping simplifié des styles ======
+const cssMap = {
+    color: 'color',
+    bg: 'background',
+    size: 'font-size',
+    align: 'text-align',
+    padding: 'padding',
+    margin: 'margin',
+    radius: 'border-radius',
+    width: 'width',
+    height: 'height'
+};
+
+// ====== Styles spéciaux sans valeur ======
+const specialStyles = {
+    center: 'text-align:center;',
+    bold: 'font-weight:bold;',
+    shadow: 'box-shadow:0 2px 10px rgba(0,0,0,0.2);'
+};
+
+// ====== Parser contenu + styles ======
+function parseStyle(line) {
+    const parts = line.split('/');
+    const content = parts[0].trim();
+    const styles = parts.slice(1);
+
+    let styleString = '';
+
+    styles.forEach(style => {
+        style = style.trim();
+
+        // Cas : key=value
+        if (style.includes('=')) {
+            const [key, value] = style.split('=').map(s => s.trim());
+
+            if (cssMap[key]) {
+                styleString += `${cssMap[key]}:${value};`;
+            }
+        } 
+        // Cas : style spécial (ex: center, bold)
+        else if (specialStyles[style]) {
+            styleString += specialStyles[style];
+        }
+    });
+
+    return { content, styleString };
+}
+
 // ====== Fonctions de rendu HTML ======
 const renderers = {
-    text: line => `<p>${line}</p>`,
-    button: line => `<button>${line}</button>`,
-    link: (text, url) => `<a href="${url}">${text}</a>`,
-    image: line => `<img src="${line}">`,
-    buttonLink: (text, url) => `<button onclick="window.location.href='${url}'">${text}</button>`,
-    title: line => `<h1>${line}</h1>`,
-    subtitle: line => `<h2>${line}</h2>`,
-    bold: line => `<strong>${line}</strong>`,
-    italic: line => `<em>${line}</em>`,
-    underline: line => `<u>${line}</u>`,
-    quote: line => `<blockquote>${line}</blockquote>`,
-    list: line => `<ul>${line.split(',').map(i => `<li>${i.trim()}</li>`).join('')}</ul>`,
-    numberedList: line => `<ol>${line.split(',').map(i => `<li>${i.trim()}</li>`).join('')}</ol>`,
-    cross: line => `<s>${line}</s>`,
+    text: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<p style="${styleString}">${content}</p>`;
+    },
+
+    button: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<button style="${styleString}">${content}</button>`;
+    },
+
+    link: line => {
+        const parts = line.split(', to ');
+        if (parts.length !== 2) return error(line);
+
+        const { content, styleString } = parseStyle(parts[0]);
+        const url = parts[1].trim();
+
+        return `<a href="${url}" style="${styleString}">${content}</a>`;
+    },
+
+    image: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<img src="${content}" style="${styleString}">`;
+    },
+
+    buttonLink: (text, url) => {
+        const { content, styleString } = parseStyle(text);
+        return `<button style="${styleString}" onclick="window.location.href='${url}'">${content}</button>`;
+    },
+
+    title: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<h1 style="${styleString}">${content}</h1>`;
+    },
+
+    subtitle: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<h2 style="${styleString}">${content}</h2>`;
+    },
+
+    bold: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<strong style="${styleString}">${content}</strong>`;
+    },
+
+    italic: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<em style="${styleString}">${content}</em>`;
+    },
+
+    underline: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<u style="${styleString}">${content}</u>`;
+    },
+
+    quote: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<blockquote style="${styleString}">${content}</blockquote>`;
+    },
+
+    list: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<ul style="${styleString}">${content.split(',').map(i => `<li>${i.trim()}</li>`).join('')}</ul>`;
+    },
+
+    numberedList: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<ol style="${styleString}">${content.split(',').map(i => `<li>${i.trim()}</li>`).join('')}</ol>`;
+    },
+
+    cross: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<s style="${styleString}">${content}</s>`;
+    },
+
     break: () => `<br>`,
-    paragraph: line => `<p>${line}</p>`,
-    area: line => `<section>${line}</section>`,
-    article: line => `<article>${line}</article>`,
-    box: line => `<div>${line}</div>`,
+
+    paragraph: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<p style="${styleString}">${content}</p>`;
+    },
+
+    area: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<section style="${styleString}">${content}</section>`;
+    },
+
+    article: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<article style="${styleString}">${content}</article>`;
+    },
+
+    box: line => {
+        const { content, styleString } = parseStyle(line);
+        return `<div style="${styleString}">${content}</div>`;
+    },
+
     comment: line => `<!-- ${line} -->`
 };
 
-// ====== Fonction pour parser une ligne ======
+// ====== Erreur ======
+function error(line) {
+    return `<span style="color:red;">${syntax_error}: ${line}</span>`;
+}
+
+// ====== Parser une ligne ======
 function parseLine(line) {
     line = line.trim();
     if (!line) return '';
 
     // Bouton avec lien en priorité
     const buttonLinkMatch = line.match(/^\s*button\s*:\s*(.+?),\s*to\s+(.+)$/i);
-    if (buttonLinkMatch) return renderers.buttonLink(buttonLinkMatch[1].trim(), buttonLinkMatch[2].trim());
+    if (buttonLinkMatch) {
+        return renderers.buttonLink(buttonLinkMatch[1].trim(), buttonLinkMatch[2].trim());
+    }
 
-    // Lignes avec "motclé: contenu"
+    // Mot-clé: contenu
     const simpleMatch = line.match(/^\s*(\w[\w-]*)\s*:\s*(.+)$/i);
     if (simpleMatch) {
         const key = simpleMatch[1].trim().toLowerCase();
         const value = simpleMatch[2].trim();
+
         if (renderers[key]) return renderers[key](value);
     }
 
-    // Erreur si rien ne correspond
-    return `<span style="color:red;">${syntax_error}: ${line}</span>`;
+    return error(line);
 }
 
 // ====== Fonction principale ======
 function parseAndShow() {
     const input = document.getElementById('input').value;
     const lines = input.split('\n');
+
     let htmlOutput = '';
     let previewHTML = '';
 
@@ -62,20 +196,22 @@ function parseAndShow() {
     document.getElementById('preview').innerHTML = previewHTML;
 }
 
-// ====== Copier le résultat ======
+// ====== Copier ======
 function copyOutput() {
     const output = document.getElementById('output').textContent;
+
     navigator.clipboard.writeText(output).then(() => {
         alert("HTML copié dans le presse-papiers !");
     }).catch(err => {
-        alert("Erreur lors de la copie : " + err);
+        alert("Erreur : " + err);
     });
 }
 
-// ====== Gestion de l'input ======
+// ====== Input live ======
 let timeout;
 document.getElementById('input').addEventListener('input', () => {
     clearTimeout(timeout);
-    timeout = setTimeout(parseAndShow, 300); // 300ms après la dernière frappe
+    timeout = setTimeout(parseAndShow, 300);
 });
-window.onload = parseAndShow; // Parse au chargement initial
+
+window.onload = parseAndShow;
